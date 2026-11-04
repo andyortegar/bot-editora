@@ -41,6 +41,14 @@ export function crearServidor({ config, almacen, app }) {
         if (config.telegramSecreto && req.headers['x-telegram-bot-api-secret-token'] !== config.telegramSecreto) return responder(403);
         const update = JSON.parse((await leerCuerpo(req)) || '{}');
         responder(200, 'ok');
+        // Quien toca Iniciar en el bot recibe su número de chat (para ponerlo en el .env).
+        const m = update.message;
+        if (m?.text?.startsWith('/start') && config.telegramToken) {
+          fetch(`https://api.telegram.org/bot${config.telegramToken}/sendMessage`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: m.chat.id, text: `Listo. Su número de chat es ${m.chat.id}. Envíeselo a Andy para activar los avisos.` }),
+          }).catch(() => {});
+        }
         app.telegram(update).catch((e) => console.error('telegram', e));
         return;
       }
