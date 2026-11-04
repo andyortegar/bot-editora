@@ -1,0 +1,6 @@
+node_modules/
+.env
+datos/
+*.tmp
+simulador/simulador.html
+package-lock.json
