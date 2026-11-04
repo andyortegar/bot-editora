@@ -1,0 +1,14 @@
+{
+  "name": "bot-editora-ortega",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Bot de WhatsApp de Editora Ortega: motor de conversación (sin red) usado por el servidor y por el simulador.",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "simulador": "node herramientas/construir-simulador.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2"
+  }
+}
