@@ -19,7 +19,7 @@ export function intencion(texto) {
     ofertas: contiene(t, /\b(oferta|ofertas|promocion|promociones|promo|especial(es)? de la semana)\b/),
     gracias: contiene(t, /^(muchas )?(gracias|ok|okay|oki|perfecto|listo|dale|bien|excelente|genial|entendido)\b/),
     saludo: contiene(t, /^(hola|buen(as|os)?( dias| tardes| noches)?|saludos|que tal|klk|hey)\b/),
-    origen: /vengo de instagram/.test(t) ? 'instagram' : /vengo de facebook/.test(t) ? 'facebook' : /vengo de (la|su) pagina( web)?/.test(t) ? 'web' : null,
+    origen: /vengo de instagram/.test(t) ? 'instagram' : /vengo de facebook/.test(t) ? 'facebook' : /vengo de (la|su) pagina( web)?/.test(t) ? 'web' : /can i get more info on this|quiero mas informacion/.test(t) ? 'anuncio' : null,
     si: contiene(t, /^(si|sí|claro|por supuesto|de acuerdo|correcto|asi es|ok|dale)\b/),
     no: contiene(t, /^(no|nop|nel|negativo|todavia no|aun no)\b/),
   };

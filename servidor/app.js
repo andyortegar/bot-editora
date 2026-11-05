@@ -88,6 +88,12 @@ export function crearApp({ config, almacen, reloj = () => new Date(), log = cons
       } catch (e) { log.error('IA texto', e.message); }
     }
 
+    // Si el chat llegó por un anuncio, el origen queda como "anuncio" (salvo que diga Instagram, Facebook o web).
+    if (s.anuncio && (!r.estado.origen || r.estado.origen === 'directo')) {
+      r.estado.origen = 'anuncio';
+      for (const ev of r.eventos) if (ev.tipo === 'pase' && ev.origen === 'directo') ev.origen = 'anuncio';
+    }
+
     if (!previo || previo.etapa === 'nuevo') almacen.registrar({ tipo: 'chat_nuevo', telefono: s.telefono, origen: r.estado.origen });
     if (r.estado.etapa === 'curioso' && previo?.etapa !== 'curioso') almacen.registrar({ tipo: 'curioso', telefono: s.telefono });
     chat.estado = r.estado;
