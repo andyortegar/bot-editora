@@ -28,6 +28,8 @@ export function crearServidor({ config, almacen, app }) {
     const responder = (codigo, cuerpo = '', tipo = 'text/plain; charset=utf-8') => { res.writeHead(codigo, { 'Content-Type': tipo }); res.end(cuerpo); };
     try {
       if (url.pathname === '/salud') return responder(200, 'ok');
+      // La dirección sola (panel.editoraortega.com) lleva al panel.
+      if (url.pathname === '/' || url.pathname === '/panel/') { res.writeHead(302, { Location: '/panel' }); return res.end(); }
 
       // 360dialog envía aquí los mensajes. La ruta lleva un secreto para que nadie más la use.
       if (req.method === 'POST' && url.pathname === `/webhook/whatsapp/${process.env.WEBHOOK_SECRETO || ''}` && process.env.WEBHOOK_SECRETO) {
