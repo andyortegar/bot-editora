@@ -4,8 +4,12 @@ import { fetchar } from './red.js';
 const corto = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
 // Mensaje del motor → cuerpo para la API de WhatsApp.
+// Un cliente con nombre de usuario de WhatsApp puede llegar sin teléfono, solo con su
+// identificador de Meta (BSUID, por ejemplo "DO.1234..."). A ese se le escribe con "recipient".
+export const esTelefono = (id) => /^\d+$/.test(String(id || ''));
+
 export function aWhatsApp(telefono, m) {
-  const base = { messaging_product: 'whatsapp', recipient_type: 'individual', to: telefono };
+  const base = { messaging_product: 'whatsapp', recipient_type: 'individual', ...(esTelefono(telefono) ? { to: telefono } : { recipient: telefono }) };
   if (m.tipo === 'texto') return { ...base, type: 'text', text: { body: m.texto, preview_url: false } };
   if (m.tipo === 'ubicacion') {
     return { ...base, type: 'location', location: { latitude: m.lat, longitude: m.lng, name: m.nombre, address: m.direccion } };
@@ -66,15 +70,21 @@ export function leerWebhook(cuerpo) {
   for (const entry of cuerpo?.entry || []) {
     for (const change of entry.changes || []) {
       const v = change.value || {};
-      const nombres = Object.fromEntries((v.contacts || []).map((c) => [c.wa_id, c.profile?.name]));
+      const nombres = Object.fromEntries((v.contacts || []).flatMap((c) => [[c.wa_id, c.profile?.name], [c.user_id, c.profile?.name]]).filter(([k]) => k));
       if (change.field === 'messages') {
-        for (const msg of v.messages || []) sucesos.push({ tipo: 'mensaje', telefono: msg.from, nombre: nombres[msg.from] || null, ...entradaDe(msg) });
+        for (const msg of v.messages || []) {
+          const quien = msg.from || msg.from_user_id;
+          if (quien) sucesos.push({ tipo: 'mensaje', telefono: quien, nombre: nombres[quien] || null, ...entradaDe(msg) });
+        }
         for (const st of v.statuses || []) {
-          sucesos.push({ tipo: 'estado', telefono: st.recipient_id, estado: st.status, error: st.errors?.[0]?.title || null });
+          sucesos.push({ tipo: 'estado', telefono: st.recipient_id || st.recipient_user_id, estado: st.status, error: st.errors?.[0]?.title || null });
         }
       }
       if (change.field === 'smb_message_echoes') {
-        for (const eco of v.message_echoes || []) sucesos.push({ tipo: 'eco', telefono: eco.to });
+        for (const eco of v.message_echoes || []) {
+          const quien = eco.to || eco.to_user_id;
+          if (quien) sucesos.push({ tipo: 'eco', telefono: quien });
+        }
       }
       if (change.field === 'phone_number_quality_update') {
         sucesos.push({ tipo: 'calidad', calidad: v.current_limit || v.event || null, evento: v.event || null, detalle: v });
