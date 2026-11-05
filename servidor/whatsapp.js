@@ -74,7 +74,8 @@ export function leerWebhook(cuerpo) {
       if (change.field === 'messages') {
         for (const msg of v.messages || []) {
           const quien = msg.from || msg.from_user_id;
-          if (quien) sucesos.push({ tipo: 'mensaje', telefono: quien, nombre: nombres[quien] || null, ...entradaDe(msg) });
+          // Los chats que vienen de un anuncio de clic a WhatsApp traen "referral".
+          if (quien) sucesos.push({ tipo: 'mensaje', telefono: quien, nombre: nombres[quien] || null, anuncio: Boolean(msg.referral), ...entradaDe(msg) });
         }
         for (const st of v.statuses || []) {
           sucesos.push({ tipo: 'estado', telefono: st.recipient_id || st.recipient_user_id, estado: st.status, error: st.errors?.[0]?.title || null });
