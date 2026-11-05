@@ -3,6 +3,9 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<
 const rd$ = (n) => (n == null ? '—' : `RD$${Math.round(n).toLocaleString('en-US')}`);
 const hora = (iso) => (iso ? new Date(iso).toLocaleString('es-DO', { timeZone: 'America/Santo_Domingo', dateStyle: 'short', timeStyle: 'short' }) : '—');
 
+const esTel = (t) => /^\d+$/.test(String(t || ''));
+const contacto = (t) => (esTel(t) ? `<a href="https://wa.me/${esc(t)}">+${esc(t)}</a>` : '<span class="suave">usuario sin número visible</span>');
+
 const ESTILO = `
 :root{--papel:#f4f6f7;--hoja:#fff;--tinta:#14212b;--suave:#5a6b78;--linea:#d9e0e5;--cian:#00799e;--alta:#c62828;--media:#b26a00;--baja:#2e7d32}
 @media (prefers-color-scheme:dark){:root{--papel:#0f171d;--hoja:#17222a;--tinta:#e6edf1;--suave:#93a5b2;--linea:#26343e;--cian:#4cc3e6;--alta:#ef5350;--media:#ffb74d;--baja:#81c784;color-scheme:dark}}
@@ -31,14 +34,14 @@ export function panelPrincipal(datos) {
   const { cola, chats } = datos;
   const filaCola = cola.map((t, i) => {
     const c = chats[t], p = c.pase || {};
-    return `<tr><td>${i + 1}</td><td><b>${esc(c.nombre || '')}</b><br><a href="https://wa.me/${esc(t)}">+${esc(t)}</a></td>
+    return `<tr><td>${i + 1}</td><td><b>${esc(c.nombre || '')}</b><br>${contacto(t)}</td>
 <td>${(p.items || []).map((x) => esc(x.descripcion)).join('<br>') || '—'}</td><td><b>${rd$(p.ticket)}</b></td>
 <td><span class="chip ${esc(p.urgencia || '')}">${esc(p.urgencia || 'sin fecha')}</span><br><span class="suave">${esc(p.fechaTexto || '')}</span></td>
 <td>${esc(p.motivo || '')}<br><span class="suave">${esc(p.origen || '')}</span></td>
 <td><form method="post" action="/panel/terminar"><input type="hidden" name="telefono" value="${esc(t)}"><button>Terminado</button></form></td></tr>`;
   }).join('');
   const recientes = Object.values(chats).filter((c) => c.pase).sort((a, b) => (b.pase.fecha || '').localeCompare(a.pase.fecha || '')).slice(0, 60);
-  const filaRes = recientes.map((c) => `<tr><td>${hora(c.pase.fecha)}</td><td>${esc(c.nombre || '')}<br><span class="suave">+${esc(c.telefono)}</span></td>
+  const filaRes = recientes.map((c) => `<tr><td>${hora(c.pase.fecha)}</td><td>${esc(c.nombre || '')}<br>${contacto(c.telefono)}</td>
 <td>${rd$(c.pase.ticket)}</td><td>${(c.comprobantes || []).map((x) => `${rd$(x.monto)} · ${esc(x.estado)}`).join('<br>') || '—'}</td><td>${formResultado(c.telefono, c.resultado)}</td></tr>`).join('');
   return pagina('Panel del bot', `
 <section><h2>En espera de Verónica (${cola.length})</h2>${cola.length ? `<table><thead><tr><th>#</th><th>Cliente</th><th>Pedido</th><th>Ticket</th><th>Urgencia</th><th>Motivo</th><th></th></tr></thead><tbody>${filaCola}</tbody></table>` : '<p class="suave">Nadie en espera.</p>'}</section>

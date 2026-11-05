@@ -15,6 +15,9 @@ const esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<'
 const rd$ = (n) => `RD$${Math.round(n || 0).toLocaleString('en-US')}`;
 const URG = { alta: '🔴 Urgencia alta', media: '🟡 Urgencia media', baja: '🟢 Urgencia baja' };
 const ORIGEN = { instagram: 'Instagram', facebook: 'Facebook', web: 'página web', directo: 'directo', anuncio: 'anuncio' };
+const esTel = (t) => /^\d+$/.test(String(t || ''));
+// Cómo se muestra el cliente: su teléfono o, si usa nombre de usuario, un aviso de que no hay número.
+const contacto = (t) => (esTel(t) ? `+${t}` : 'usuario sin número visible');
 const ARTE = { si: 'Tiene diseño', parcial: 'Le falta algún diseño', no: 'No tiene diseño' };
 
 export function textoAviso(chat, posicion) {
@@ -24,7 +27,7 @@ export function textoAviso(chat, posicion) {
     : '📦 Sin productos todavía';
   return [
     `<b>🟢 Nuevo cliente · #${posicion} en la cola</b>`,
-    `${esc(chat.nombre || 'Cliente')} · +${esc(chat.telefono)}`,
+    `${esc(chat.nombre || 'Cliente')} · ${esc(contacto(chat.telefono))}`,
     items,
     `💰 ${p.ticketEstimado ? 'Ticket estimado' : 'Ticket'}: <b>${rd$(p.ticket)}</b>`,
     `📅 ${esc(p.fechaTexto || 'sin fecha')} · ${URG[p.urgencia] || 'Sin urgencia'}`,
@@ -38,13 +41,16 @@ const enlaceChat = (telefono) => `https://wa.me/${telefono}`;
 export async function avisarPase(config, chat, posicion) {
   return api(config, 'sendMessage', {
     chat_id: config.telegramChat, parse_mode: 'HTML', text: textoAviso(chat, posicion),
-    reply_markup: { inline_keyboard: [[{ text: 'Abrir chat', url: enlaceChat(chat.telefono) }, { text: 'Terminado', callback_data: `fin:${chat.telefono}` }]] },
+    reply_markup: { inline_keyboard: [[
+      ...(esTel(chat.telefono) ? [{ text: 'Abrir chat', url: enlaceChat(chat.telefono) }] : []),
+      { text: 'Terminado', callback_data: `fin:${chat.telefono}` },
+    ]] },
   });
 }
 
 export async function avisarComprobante(config, chat, c) {
   const texto = [
-    `<b>💰 Comprobante de ${esc(chat.nombre || `+${chat.telefono}`)}</b>`,
+    `<b>💰 Comprobante de ${esc(chat.nombre || contacto(chat.telefono))}</b>`,
     `${c.monto ? rd$(c.monto) : 'Monto no legible'}${c.banco ? ` · ${esc(c.banco)}` : ''}${c.fecha ? ` · ${esc(c.fecha)}` : ''}${c.referencia_ultimos4 ? ` · ref. …${esc(c.referencia_ultimos4)}` : ''}`,
     `Ticket estimado: ${rd$(chat.pase?.ticket)}`,
     'Confírmelo en el banco antes de tocar Confirmar.',
@@ -73,7 +79,7 @@ export function textoCola(almacen, ahora, desdeApertura) {
   const lineas = cola.length
     ? cola.map((t, i) => {
       const c = chats[t];
-      return `${i + 1}. ${esc(c.nombre || `+${t}`)} · ${rd$(c.pase?.ticket)} · ${URG[c.pase?.urgencia]?.slice(0, 2) || '⚪'} · ${espera(minutosEspera(c.pase, ahora, desdeApertura))}`;
+      return `${i + 1}. ${esc(c.nombre || contacto(t))} · ${rd$(c.pase?.ticket)} · ${URG[c.pase?.urgencia]?.slice(0, 2) || '⚪'} · ${espera(minutosEspera(c.pase, ahora, desdeApertura))}`;
     })
     : ['Nadie en espera. 🎉'];
   return `<b>📋 Cola de atención</b> (${cola.length})\n${lineas.join('\n')}`;
