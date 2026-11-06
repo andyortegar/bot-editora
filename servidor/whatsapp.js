@@ -1,5 +1,5 @@
 // WhatsApp por 360dialog: leer el webhook y enviar mensajes (formato de la Cloud API de Meta).
-import { fetchar } from './red.js';
+import { fetchar, dormir } from './red.js';
 
 const corto = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
@@ -37,14 +37,24 @@ export function aWhatsApp(telefono, m) {
   throw new Error(`Tipo de mensaje desconocido: ${m.tipo}`);
 }
 
+// Si WhatsApp frena por mandar muchos mensajes seguidos al mismo cliente (429),
+// se espera y se reintenta: 2, 5 y 10 segundos.
+const ESPERAS_429 = [2000, 5000, 10000];
+
 export async function enviar(config, cuerpo) {
-  const r = await fetchar(`${config.d360Url}/messages`, {
-    method: 'POST',
-    headers: { 'D360-API-KEY': config.d360Clave, 'Content-Type': 'application/json' },
-    body: JSON.stringify(cuerpo),
-  });
-  if (!r.ok) throw new Error(`360dialog respondió ${r.status}: ${await r.text().catch(() => '')}`);
-  return r.json().catch(() => ({}));
+  for (let intento = 0; ; intento++) {
+    const r = await fetchar(`${config.d360Url}/messages`, {
+      method: 'POST',
+      headers: { 'D360-API-KEY': config.d360Clave, 'Content-Type': 'application/json' },
+      body: JSON.stringify(cuerpo),
+    });
+    if (r.ok) return r.json().catch(() => ({}));
+    const detalle = await r.text().catch(() => '');
+    if (r.status === 429 && intento < ESPERAS_429.length) { await dormir(ESPERAS_429[intento]); continue; }
+    const e = new Error(`360dialog respondió ${r.status}: ${detalle}`);
+    e.status = r.status;
+    throw e;
+  }
 }
 
 // Descarga un archivo (foto/PDF) que mandó el cliente. Devuelve { base64, tipo } o null.

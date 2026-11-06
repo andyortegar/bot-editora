@@ -28,7 +28,10 @@ export function crearApp({ config, almacen, reloj = () => new Date(), log = cons
         chat.historial.push({ de: 'bot', fecha: reloj().toISOString(), texto: m.texto || m.tipo });
       } catch (e) {
         log.error('Fallo al enviar', e.message);
-        await tg.alerta(config, `No pude enviarle un mensaje a +${chat.telefono}. Revise el saldo de 360dialog. Detalle: ${e.message}`).catch(() => {});
+        const causa = e.status === 429
+          ? 'WhatsApp frenó los envíos a este cliente por mandar muchos mensajes seguidos; se reintentó 3 veces. Escríbale desde la app.'
+          : 'Revise el saldo de 360dialog.';
+        await tg.alerta(config, `No pude enviarle un mensaje a ${chat.telefono}. ${causa} Detalle: ${e.message}`).catch(() => {});
         break;
       }
     }
